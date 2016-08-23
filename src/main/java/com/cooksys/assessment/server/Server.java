@@ -18,7 +18,7 @@ import com.cooksys.assessment.model.User;
 public class Server implements Runnable {
 	
 	static ArrayList<User> users = new ArrayList();
-	static HashMap<User, String> nameChanged = new HashMap();
+	static HashMap<User, String> name = new HashMap();
 	
 	private Logger log = LoggerFactory.getLogger(Server.class);
 	

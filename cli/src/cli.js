@@ -17,8 +17,8 @@ cli
   .mode('connect <username> [server] = localhost')
   .delimiter(cli.chalk['green']('connected>'))
   .init(function (args, callback) {
-
-  server = connect({ host: args.server, port: 8080 }, () => {
+    username = args.username
+    server = connect({ host: args.server, port: 8080 }, () => {
 
       server.write(new Message({ username, command: 'connect' }).toJSON() + '\n')
       callback()

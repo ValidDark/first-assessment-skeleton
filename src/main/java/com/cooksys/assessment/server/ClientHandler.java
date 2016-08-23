@@ -31,13 +31,15 @@ public class ClientHandler implements Runnable {
 	
 	ObjectMapper mapper = new ObjectMapper();
 	
-
+	String writeBuffer = "";
 
 	public ClientHandler(Socket socket) {
 		super();
 		this.socket = socket;
 	}
 
+	User thisClient;
+	
 	public void run() {
 		try {
 
@@ -49,11 +51,10 @@ public class ClientHandler implements Runnable {
 
 			while (!socket.isClosed()) {
 				String raw = reader.readLine();
-				Message message = mapper.readValue(raw, Message.class);
-
+				Message message = mapper.readValue(raw, Message.class);		
 				timeStamp = new SimpleDateFormat("EEE, MMM d, yyyy, hh:mm:ss aa").format(new Date());
 
-				log.info("user <{}> doing command: <{}>  :: {}", message.getUsername(), message.getCommand(),
+				log.info("user <{}> doing command: <{}> {}", message.getUsername(), message.getCommand(),
 						timeStamp);
 
 				if (message.getCommand().charAt(0) == '@') {
@@ -62,48 +63,42 @@ public class ClientHandler implements Runnable {
 				}
 
 				switch (message.getCommand()) {
+				
+				
+				
+				
 				case "connect":
-
+					
+					message.setUsername(message.getUsername().replaceAll("\\s+",""));
+					
+					
+					thisClient = new User(message.getUsername(), this.socket); //setup user object
+					
+					Server.users.add(thisClient); //add user Object to users list
+					
 					for (int i = 0; i < Server.users.size(); ++i) {
-						if (!message.getUsername().equals(Server.users.get(i).getUsername())) {
-							Server.nameChanged.put(Server.users.get(i),Server.users.get(i).getUsername());
-						}
-						else
-						{
-							String id = String.format("%04d", new Random().nextInt(10000));
-							
-
+						if (message.getUsername().equals(Server.users.get(i).getUsername())) {  
+							String id = String.format("%04d", new Random().nextInt(10000));							
 							message.setUsername(message.getUsername() + id);
-
-							Server.nameChanged.put(Server.users.get(i),message.getUsername());
 							
-							
-							message.setContents(Server.users.get(i).getUsername() + " was taken.  Your name was set to: "
-									+ message.getUsername());
-
-							String conResponse = mapper.writeValueAsString(message);
-							writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); // set
-																										// writer
-																										// to
-																										// write
-																										// to
-																										// self
-							writer.write(conResponse);
+							message.setContents(Server.users.get(i).getUsername() + " was taken.  Your name was set to: " + message.getUsername());
+							writeBuffer = mapper.writeValueAsString(message);
+							writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+							writer.write(writeBuffer);
 							writer.flush();
-
+						}	
 						}
-					}
-
-					log.info("user <{}> connected from: {}", message.getUsername(), socket.getRemoteSocketAddress().toString());
-					Server.users.add(new User(message.getUsername(), this.socket));
-
-					message.setContents(timeStamp + " <" + message.getUsername() + "> has connected.");
-
-					String cMsg = mapper.writeValueAsString(message);
-
+					
+					Server.name.put(thisClient,message.getUsername()); //set the servers version of their name
+					
+					log.info("user <{}> connected from: {}", message.getUsername(), socket.getRemoteSocketAddress().toString()); //log to server
+					
+					message.setContents(timeStamp + ": <" + message.getUsername() + "> has connected.");
+					writeBuffer = mapper.writeValueAsString(message);
+					
 					for (int i = 0; i < Server.users.size(); ++i) {
 						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
-						writer.write(cMsg);
+						writer.write(writeBuffer);
 						writer.flush();
 					}
 
@@ -115,71 +110,100 @@ public class ClientHandler implements Runnable {
 					}
 
 					break;
+					
+					
+					
+					
+					
 				case "disconnect":
-					log.info("user <{}> disconnected", message.getUsername());
+					
+					log.info("user <{}> disconnected", Server.name.get(thisClient));
 
-					message.setContents(timeStamp + " <" + message.getUsername() + "> has disconnected.");
+					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> has disconnected.");
 
-					String dcMsg = mapper.writeValueAsString(message);
+					writeBuffer = mapper.writeValueAsString(message);
 
 					for (int i = 0; i < Server.users.size(); ++i) {
 						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
-						writer.write(dcMsg);
+						writer.write(writeBuffer);
 						writer.flush();
-
-						if (message.getUsername().equals(Server.users.get(i).getUsername())) {
-							this.socket.close();
-							Server.users.remove(i);
-						}
-
 					}
+					
+					this.socket.close();
+					Server.users.remove(thisClient);
+					Server.name.remove(thisClient);
 
 					break;
+					
+					
+					
+					
+					
 				case "echo":
-					log.info("user <{}> echoed message <{}>", message.getUsername(), message.getContents());
-					String echoBuffer = message.getContents();
-					message.setContents(timeStamp + " <" + message.getUsername() + "> (echo): " + echoBuffer);
-					String response = mapper.writeValueAsString(message);
-					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); // set
-																								// writer
-																								// to
-																								// write
-																								// to
-																								// self
-					writer.write(response);
+					log.info("user <{}> echoed message <{}>", Server.name.get(thisClient), message.getContents());
+					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (echo): " + message.getContents());
+					writeBuffer = mapper.writeValueAsString(message);
+					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); 
+					writer.write(writeBuffer);
 					writer.flush();
 					break;
 
+					
+					
+					
+					
 				case "broadcast":
-					log.info("user <{}> tried to broadcast <{}>", message.getUsername(), message.getContents());
+					log.info("user <{}> tried to broadcast <{}>", Server.name.get(thisClient), message.getContents());
 
-					String msgBuffer = message.getContents();
-					message.setContents(timeStamp + " <" + message.getUsername() + "> (all): " + msgBuffer);
+					//String msgBuffer = message.getContents();
+					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (all): " + message.getContents());
 
-					String bCast = mapper.writeValueAsString(message);
+					writeBuffer = mapper.writeValueAsString(message);
 
 					for (int i = 0; i < Server.users.size(); ++i) {
 						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
-						writer.write(bCast);
+						writer.write(writeBuffer);
 						writer.flush();
 					}
 
 					break;
+					
+					
+					
+					
+					
+					
+					
+					
 				case "@":
 					String usersOnline = "Users Online : \n";
 					message.setCommand("@" + toUser);
 
 					boolean userFound = false;
 
-					msgBuffer = message.getContents();
-					message.setContents(timeStamp + " <" + message.getUsername() + "> (whisper): " + msgBuffer);
+					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (whisper): " + message.getContents());
 
-					for (int i = 0; i < Server.users.size(); ++i) {
-						usersOnline += (Server.users.get(i).getUsername() + "\n");
+					
+						for(String nameKey : Server.name.values()){
+							usersOnline += nameKey + "\n";
+							
+							if(nameKey.equals(toUser))
+							{
+
+//						This is where I left off,  got to get key based on value,
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//						        for (Entry<Integer, String> entry : testMap.entrySet()) {
+//						            if (entry.getValue().equals("c")) {
+//						                System.out.println(entry.getKey());
+//						            }
+
+								
+								userFound = true;
+								writer = new PrintWriter( new OutputStreamWriter( Server.name.e      Server.users.get(i).getSocket().getOutputStream()));
+							}
+						}
 						if (Server.users.get(i).getUsername().equals(toUser)) {
-							userFound = true;
-							writer = new PrintWriter(
-									new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
+							
 						}
 					}
 
