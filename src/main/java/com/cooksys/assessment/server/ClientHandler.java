@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -54,7 +55,7 @@ public class ClientHandler implements Runnable {
 				Message message = mapper.readValue(raw, Message.class);		
 				timeStamp = new SimpleDateFormat("EEE, MMM d, yyyy, hh:mm:ss aa").format(new Date());
 
-				log.info("user <{}> doing command: <{}> {}", message.getUsername(), message.getCommand(),
+				log.info("user <{}> doing command: <{}> {}", Server.name.get(thisClient), message.getCommand(),
 						timeStamp);
 
 				if (message.getCommand().charAt(0) == '@') {
@@ -71,10 +72,11 @@ public class ClientHandler implements Runnable {
 					
 					message.setUsername(message.getUsername().replaceAll("\\s+",""));
 					
+					if(message.getUsername()==""){
+						message.setUsername("_");
+					}
 					
-					thisClient = new User(message.getUsername(), this.socket); //setup user object
 					
-					Server.users.add(thisClient); //add user Object to users list
 					
 					for (int i = 0; i < Server.users.size(); ++i) {
 						if (message.getUsername().equals(Server.users.get(i).getUsername())) {  
@@ -88,6 +90,11 @@ public class ClientHandler implements Runnable {
 							writer.flush();
 						}	
 						}
+					
+					thisClient = new User(message.getUsername(), this.socket); //setup user object
+					
+					Server.users.add(thisClient); //add user Object to users list
+					
 					
 					Server.name.put(thisClient,message.getUsername()); //set the servers version of their name
 					
@@ -184,69 +191,66 @@ public class ClientHandler implements Runnable {
 					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (whisper): " + message.getContents());
 
 					
-						for(String nameKey : Server.name.values()){
-							usersOnline += nameKey + "\n";
-							
-							if(nameKey.equals(toUser))
-							{
 
-//						This is where I left off,  got to get key based on value,
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//						        for (Entry<Integer, String> entry : testMap.entrySet()) {
-//						            if (entry.getValue().equals("c")) {
-//						                System.out.println(entry.getKey());
-//						            }
+						        for (Entry<User, String> entry : Server.name.entrySet()) {
+						        	usersOnline += entry.getValue() + "\n";
+						        	
+						            if (entry.getValue().equals(toUser)) {
+						            	
+						            	userFound = true;
+										writer = new PrintWriter( new OutputStreamWriter( entry.getKey().getSocket().getOutputStream()));	
+						            	
+						                System.out.println(entry.getKey());
+						            }
 
-								
-								userFound = true;
-								writer = new PrintWriter( new OutputStreamWriter( Server.name.e      Server.users.get(i).getSocket().getOutputStream()));
+
 							}
-						}
-						if (Server.users.get(i).getUsername().equals(toUser)) {
-							
-						}
-					}
 
 					if (!userFound) {
-						message.setContents("User <" + toUser + "> not found!\n" + usersOnline); // if
-																									// user
-																									// not
-																									// found
-						writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); // set
-																									// output																	// own
-																									// socket
+						message.setContents("User <" + toUser + "> not found!\n" + usersOnline); 
+																																										
+						writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); 
+																									
 					}
 
-					String pMsg = mapper.writeValueAsString(message);
-					writer.write(pMsg);
+					writeBuffer = mapper.writeValueAsString(message);
+					writer.write(writeBuffer);
 					writer.flush();
 
 					break;
+					
+					
+					
+					
 				case "users":
 					usersOnline = "Users Online : \n";
-					for (int i = 0; i < Server.users.size(); ++i) {
-						usersOnline += (Server.users.get(i).getUsername() + "\n");
+					
+					
+					for (Entry<User, String> entry : Server.name.entrySet()) {
+			        	usersOnline += entry.getValue() + "\n";
 					}
+					
 
-					log.info("user <{}> got list of users", message.getUsername());
+
+					log.info("user <{}> got list of users", Server.name.get(thisClient));
 
 					message.setContents(usersOnline);
 
-					String checkUsers = mapper.writeValueAsString(message);
+					writeBuffer = mapper.writeValueAsString(message);
 
 					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-					writer.write(checkUsers);
+					writer.write(writeBuffer);
 					writer.flush();
 					break;
 
 				default:
-					log.info("user <{}> intered invalid command: <{}>", message.getUsername(), message.getCommand());
+					log.info("user <{}> intered invalid command: <{}>", Server.name.get(thisClient), message.getCommand());
 
 					message.setContents("Invalid Command!");
-					response = mapper.writeValueAsString(message);
+					writeBuffer = mapper.writeValueAsString(message);
 					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-					writer.write(response);
+					writer.write(writeBuffer);
 					writer.flush();
 					break;
 
