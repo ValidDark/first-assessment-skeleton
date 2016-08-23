@@ -3,12 +3,23 @@ package com.cooksys.assessment.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.cooksys.assessment.model.User;
+
+
+
+
 public class Server implements Runnable {
+	
+	static ArrayList<User> users = new ArrayList();
+	static HashMap<User, String> nameChanged = new HashMap();
+	
 	private Logger log = LoggerFactory.getLogger(Server.class);
 	
 	private int port;

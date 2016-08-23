@@ -17,26 +17,28 @@ cli
   .mode('connect <username> [server] = localhost')
   .delimiter(cli.chalk['green']('connected>'))
   .init(function (args, callback) {
-    username = args.username
-    server = connect({ host: args.server, port: 8080 }, () => {
+
+  server = connect({ host: args.server, port: 8080 }, () => {
+
       server.write(new Message({ username, command: 'connect' }).toJSON() + '\n')
       callback()
     })
 
     server.on('data', (buffer) => {
-      if(Message.command === 'echo'){
-      this.log(cli.chalk.cyan(Message.fromJSON(buffer).toString()))
-    } else if(Message.command === 'broadcast'){
-    this.log(cli.chalk.red(Message.fromJSON(buffer).toString()))
-  } else if(Message.command === '@'){
+      if(Message.fromJSON(buffer).command === 'echo'){
+      this.log(cli.chalk.red(Message.fromJSON(buffer).toString()))
+    } else if(Message.fromJSON(buffer).command === 'broadcast'){
+    this.log(cli.chalk.magenta(Message.fromJSON(buffer).toString()))
+  } else if(Message.fromJSON(buffer).command === '@'){
   this.log(cli.chalk.blue(Message.fromJSON(buffer).toString()))
 } else {
-this.log(cli.chalk.magenta(Message.fromJSON(buffer).toString()))
+this.log(cli.chalk.green(Message.fromJSON(buffer).toString()))
 }
   })
 
     server.on('end', () => {
       cli.exec('exit')
+      this.log("-----------------------------THIS IS WHAT GOES ON HERE------------------------------")
     })
   })
   .action(function (input, callback) {
@@ -49,23 +51,14 @@ this.log(cli.chalk.magenta(Message.fromJSON(buffer).toString()))
     }
     else if (command === 'echo') {
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
-      console.log(JSON.stringify({ username, command, contents }))
 
-    } else if (command === 'broadcast') {
+    } else if (command === 'broadcast' || command === 'say') {
+      command = 'broadcast'
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
-      console.log(JSON.stringify({ username, command, contents }))
 
     } else if (command.charAt(0) === '@') {
-      command = command.charAt(0)
 
 
-      const [ ...rest ] = entered
-      contents = rest.join(' ')
-
-
-      lastPMd = contents.substr(0, contents.indexOf(" "));
-
-      console.log("--------------------- content: " + contents)
 
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
 
@@ -75,22 +68,16 @@ this.log(cli.chalk.magenta(Message.fromJSON(buffer).toString()))
       command = defaultCommand
       const [ ...rest ] = entered
       let contents = rest.join(' ')
-      if (command === '@')
-      {
-        contents = lastPMd + ' ' + contents
-      }
-      console.log('username: ' + username + ' command: ' + defaultCommand + ' contents: ' + contents)
+
 
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
 
-      console.log(JSON.stringify({ username, command, contents }))
 
 
 
     }
     defaultCommand = command
 
-    console.log("type of command done : " + defaultCommand)
 
     callback()
   })
