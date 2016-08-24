@@ -34,6 +34,16 @@ public class ClientHandler implements Runnable {
 	ObjectMapper mapper = new ObjectMapper();
 	
 	String writeBuffer = "";
+	
+	
+	String helpMsg = "--Current Commands--\n" +
+			"echo help (shows help menu)\n" +
+			"echo login <name> <pass> (logs into admin with name <name> and password <pass>\n" +
+			"broadcast rollDice <#> (rolls a dice with <#> many sides)\n";
+			
+	String usersOnline = "Users Online : \n";
+	
+	
 
 	public ClientHandler(Socket socket) {
 		super();
@@ -45,15 +55,27 @@ public class ClientHandler implements Runnable {
 		PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 		writer.write(mapper.writeValueAsString(message));
 		writer.flush();
+		sleepy(); // makes thread sleep for a bit, !important!
 	}
 	
 	public void SendToAll(Message message) throws IOException
 	{
 		for (int i = 0; i < Server.users.size(); ++i) {  
-				PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+				PrintWriter writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
 				writer.write(mapper.writeValueAsString(message));
 				writer.flush();
 			}
+		sleepy(); // makes thread sleep for a bit, !important!
+	}
+	
+	public void sleepy()
+	{
+		try {
+			Thread.sleep(50);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	User thisClient;
@@ -68,6 +90,7 @@ public class ClientHandler implements Runnable {
 			String timeStamp = new SimpleDateFormat("EEE, MMM d, yyyy, hh:mm:ss aa").format(new Date());
 
 			while (!socket.isClosed()) {
+				
 				String raw = reader.readLine();
 				Message message = mapper.readValue(raw, Message.class);		
 				timeStamp = new SimpleDateFormat("EEE, MMM d, yyyy, hh:mm:ss aa").format(new Date());
@@ -98,7 +121,7 @@ public class ClientHandler implements Runnable {
 					{
 					message.setUsername(message.getUsername().replaceAll("\\s+",""));
 					
-					if(message.getUsername() == ""){
+					if(message.getUsername().equals("")){
 						log.info(message.getUsername());
 						message.setUsername("_");
 						log.info(message.getUsername());
@@ -119,12 +142,7 @@ public class ClientHandler implements Runnable {
 						}	
 						}
 					
-					try {
-						Thread.sleep(50);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					sleepy(); // makes thread sleep for a bit, !important!
 					
 					thisClient = new User(message.getUsername(), this.socket); //setup user object
 					
@@ -147,12 +165,7 @@ public class ClientHandler implements Runnable {
 					}
 
 					
-					try {
-						Thread.sleep(50);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					sleepy(); // makes thread sleep for a bit, !important!
 					
 					//send the MOTD to client when they connect
 					
@@ -203,35 +216,225 @@ public class ClientHandler implements Runnable {
 					
 					
 					
-					
+					//Going to piggyback most admin commands on echo.
 				case "echo":
+					synchronized(Server.class)
+					{
+					if(message.getContents().trim().length() >= 1)
+					{
+					
+					message.setContents(message.getContents().trim() + " ");				
+					String command = message.getContents().substring(0, message.getContents().indexOf(' '));
+					Integer trim = message.getContents().indexOf(' ') + 1;
+					log.info("echo command was: <" + command + ">");
+					
+					switch (command) {
+					
+					case "changeName":  
+						message.setContents(message.getContents().substring(trim) + " ");
+						command = message.getContents().substring(0, message.getContents().indexOf(' '));
+						trim = message.getContents().indexOf(' ') + 1;
+						
+						boolean nameFound = false;
+						
+						log.info("name to change: " + command);
+						
+						
+						for (Entry<User, String> entry : Server.name.entrySet()) {
+				        	usersOnline += entry.getValue() + "\n";
+				        	
+				            if (entry.getValue().equals(command)) {
+				            	
+				            	nameFound = true;
+								
+				            	message.setContents(message.getContents().substring(trim) + " ");
+								
+				            	String msgBuffer = Server.name.get(thisClient) + " has changed " + command +"'s name to : ";
+				            	
+				            	command = message.getContents().substring(0, message.getContents().indexOf(' '));
+								trim = message.getContents().indexOf(' ') + 1;
+								
+								message.setContents(msgBuffer + command);
+				            	entry.setValue(command);
+				            	
+				            	SendToAll(message);
+				            	
+				            }
+					}
+						
+					
+						
+						if(nameFound == false)
+						{
+							message.setCommand("connect");
+							message.setContents("--Username does not exist--");
+							SendToSelf(message);
+							
+							message.setContents(usersOnline);
+							SendToSelf(message);
+						}
+						
+						break;
+					
+					case "shutdown":  
+						
+						try {
+							message.setCommand("connect");
+							message.setContents("----------SERVER SHUTTING DOWN IN----------");
+							SendToAll(message);
+							message.setContents("----------5----------");
+							SendToAll(message);
+							Thread.sleep(1000);
+							message.setContents("----------4----------");
+							SendToAll(message);
+							Thread.sleep(1000);
+							message.setContents("----------3----------");
+							SendToAll(message);
+							Thread.sleep(1000);
+							message.setContents("----------2----------");
+							SendToAll(message);
+							Thread.sleep(1000);
+							message.setContents("----------1----------");
+							SendToAll(message);
+							Thread.sleep(1000);
+							message.setContents("------Good-Bye-------");
+							SendToAll(message);
+							Server.running = false;
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						break;
+					
+		            case "help":  
+						message.setCommand("connect");
+						message.setContents(helpMsg);
+						SendToSelf(message);
+						break;
+						
+		            case "login":
+		            {
+						message.setContents(message.getContents().substring(trim) + " ");
+						command = message.getContents().substring(0, message.getContents().indexOf(' '));
+						trim = message.getContents().indexOf(' ') + 1;
+						nameFound = false;
+						boolean passFound = false;
+						
+						log.info("login to: " + command);
+						for(int i = 0; i < Server.adminList.size(); ++i)
+						{
+							
+							if(command.trim().equals(Server.adminList.get(i).getUsername()))
+									{
+										nameFound = true;
+										
+										message.setContents(message.getContents().substring(trim) + " ");
+										command = message.getContents().substring(0, message.getContents().indexOf(' '));
+										log.info("using password: " + command);
+										if(command.trim().equals(Server.adminList.get(i).getPassword()))
+										{
+											passFound = true;
+											thisClient.setAdminLvl(Server.adminList.get(i).getPermission());
+											
+											message.setCommand("connect"); //to set it as a system message, a compatable system message
+											message.setContents("--"+Server.name.get(thisClient)+" has just logged in as an Admin!--");
+											SendToAll(message);
+											
+											if(thisClient.getAdminLvl() > 0) //change the admins help message.
+											{
+												helpMsg = helpMsg +
+												"echo changeName <old> <new> (changes a users name from <old> to <new>\n";
+											}
+											
+											
+											
+											
+										}
+										
+									}
+							
+						}
+						
+						if(nameFound == false)
+						{
+							message.setCommand("connect");
+							message.setContents("--Admin name does not exist--");
+							SendToSelf(message);
+						}
+						if(nameFound == true && passFound == false)
+						{
+							message.setCommand("connect");
+							message.setContents("--Incorrect Password--");
+							SendToSelf(message);
+						}
+		            }
+						break;
+					
+				default:
 					log.info("user <{}> echoed message <{}>", Server.name.get(thisClient), message.getContents());
 					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (echo): " + message.getContents());
-					writeBuffer = mapper.writeValueAsString(message);
-					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); 
-					writer.write(writeBuffer);
-					writer.flush();
+					SendToSelf(message);
 					break;
-
+					}
+					
+					}
+					break;
+					}
 					
 					
 					
 					
 				case "broadcast":
+					synchronized(Server.class)
+					{
+					if(message.getContents().trim().length() >= 1)
+					{
+						
+						message.setContents(message.getContents().trim() + " ");				
+						String command = message.getContents().substring(0, message.getContents().indexOf(' '));
+						Integer trim = message.getContents().indexOf(' ') + 1;
+						log.info("broadcast command was: <" + command + ">");
+						
+						
+						if(command.equals("rollDice"))
+						{
+							
+							message.setContents(message.getContents().substring(trim) + " ");
+							command = message.getContents().substring(0, message.getContents().indexOf(' '));
+							trim = message.getContents().indexOf(' ') + 1;
+							
+							log.info("<"+command+">");
+							log.info(command);
+							log.info(command);
+							log.info(command);
+							
+							if (command.matches("[0-9]+") && command.length() >= 1)
+							{
+							int roll = new Random().nextInt(Integer.parseInt(command))+1;
+							message.setCommand("connect");
+							message.setContents(Server.name.get(thisClient)+ " rolls a " + command + " sided dice and gets a : " + roll); 
+							SendToAll(message);
+							}
+							else
+							{
+								message.setCommand("connect");
+								message.setContents(command + "is not a number!");
+								SendToSelf(message);
+							}
+						}
+						
+						
+						
+						
+					else{
 					log.info("user <{}> tried to broadcast <{}>", Server.name.get(thisClient), message.getContents());
 
-					//String msgBuffer = message.getContents();
 					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (all): " + message.getContents());
-
-					writeBuffer = mapper.writeValueAsString(message);
-
-					for (int i = 0; i < Server.users.size(); ++i) {
-						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
-						writer.write(writeBuffer);
-						writer.flush();
+					SendToAll(message);
 					}
-
+					}
 					break;
+					}
 					
 					
 					
@@ -241,7 +444,7 @@ public class ClientHandler implements Runnable {
 					
 					
 				case "@":
-					String usersOnline = "Users Online : \n";
+					
 					message.setCommand("@" + toUser);
 
 					boolean userFound = false;

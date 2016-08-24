@@ -43,9 +43,17 @@ this.log(cli.chalk.green(Message.fromJSON(buffer).toString()))
     })
   })
   .action(function (input, callback) {
-    let entered = words(input, /\S*/g)
+    let entered = words(input, /[\S]+/g)
+
+console.log(input)
+console.log(entered)
+
+
+
     let [ command, ...rest ] = entered
     let contents = rest.join(' ')
+
+    console.log(contents)
 
     if (command === 'disconnect') {
       server.end(new Message({ username, command }).toJSON() + '\n')
@@ -58,8 +66,6 @@ this.log(cli.chalk.green(Message.fromJSON(buffer).toString()))
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
 
     } else if (command.charAt(0) === '@') {
-
-
 
       server.write(new Message({ username, command, contents }).toJSON() + '\n')
 

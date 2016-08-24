@@ -14,10 +14,6 @@ public class User {
 		this.socket = socket;
 	}
 	
-	
-	
-
-
 
 
 	public int getAdminLvl() {
@@ -27,12 +23,6 @@ public class User {
 	public void setAdminLvl(int adminLvl) {
 		this.adminLvl = adminLvl;
 	}
-
-
-
-
-
-
 
 	@Override
 	public int hashCode() {

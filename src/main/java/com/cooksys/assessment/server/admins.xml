@@ -2,7 +2,7 @@
 <admins>
 	<admin username="David">
 		<password>password12345</password>
-		<permission>0</permission>
+		<permission>2</permission>
 	</admin>
 	<admin username="admin">
 		<password>admin</password>
