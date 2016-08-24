@@ -6,6 +6,7 @@ public class User {
 
 	private String username;
 	private Socket socket;
+	private int adminLvl = 0; //what level admin they are, 0 for none,
 	
 	public User(String username, Socket socket) {
 		super();
@@ -15,6 +16,20 @@ public class User {
 	
 	
 	
+
+
+
+
+	public int getAdminLvl() {
+		return adminLvl;
+	}
+
+	public void setAdminLvl(int adminLvl) {
+		this.adminLvl = adminLvl;
+	}
+
+
+
 
 
 

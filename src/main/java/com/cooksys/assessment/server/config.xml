@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config>
+	<port> 8080 </port>
+	<admin-file-path>src/main/java/com/cooksys/assessment/server/admins.xml</admin-file-path>
+	<MOTD>"-Welcome to the server!-"</MOTD>
+</config>
+

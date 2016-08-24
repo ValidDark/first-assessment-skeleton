@@ -25,11 +25,12 @@ cli
     })
 
     server.on('data', (buffer) => {
-      if(Message.fromJSON(buffer).command === 'echo'){
+      let message = Message.fromJSON(buffer)
+      if(message.command === 'echo'){
       this.log(cli.chalk.red(Message.fromJSON(buffer).toString()))
-    } else if(Message.fromJSON(buffer).command === 'broadcast'){
+    } else if(message.command === 'broadcast'){
     this.log(cli.chalk.magenta(Message.fromJSON(buffer).toString()))
-  } else if(Message.fromJSON(buffer).command === '@'){
+  } else if(message.command === '@'){
   this.log(cli.chalk.blue(Message.fromJSON(buffer).toString()))
 } else {
 this.log(cli.chalk.green(Message.fromJSON(buffer).toString()))
@@ -38,7 +39,7 @@ this.log(cli.chalk.green(Message.fromJSON(buffer).toString()))
 
     server.on('end', () => {
       cli.exec('exit')
-      this.log("-----------------------------THIS IS WHAT GOES ON HERE------------------------------")
+      this.log("-----------------------------YOU'VE BEEN DISCONNECTED------------------------------")
     })
   })
   .action(function (input, callback) {

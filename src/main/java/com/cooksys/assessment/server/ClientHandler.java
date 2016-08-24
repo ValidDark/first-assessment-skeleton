@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.cooksys.assessment.model.Message;
 import com.cooksys.assessment.model.User;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ClientHandler implements Runnable {
@@ -38,6 +39,22 @@ public class ClientHandler implements Runnable {
 		super();
 		this.socket = socket;
 	}
+	
+	public void SendToSelf(Message message) throws IOException
+	{
+		PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+		writer.write(mapper.writeValueAsString(message));
+		writer.flush();
+	}
+	
+	public void SendToAll(Message message) throws IOException
+	{
+		for (int i = 0; i < Server.users.size(); ++i) {  
+				PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+				writer.write(mapper.writeValueAsString(message));
+				writer.flush();
+			}
+	}
 
 	User thisClient;
 	
@@ -55,10 +72,17 @@ public class ClientHandler implements Runnable {
 				Message message = mapper.readValue(raw, Message.class);		
 				timeStamp = new SimpleDateFormat("EEE, MMM d, yyyy, hh:mm:ss aa").format(new Date());
 
+				
+				if(Server.name.get(thisClient) == null)
+				{
+				log.info("New user trying to connect as <{}> {}", message.getUsername(),timeStamp);	
+				}
+				else{
 				log.info("user <{}> doing command: <{}> {}", Server.name.get(thisClient), message.getCommand(),
 						timeStamp);
-
-				if (message.getCommand().charAt(0) == '@') {
+				}
+				
+				if ( message.getCommand().length() >= 1 && message.getCommand().charAt(0) == '@' ) {
 					toUser = message.getCommand().substring(1);
 					message.setCommand("@");
 				}
@@ -70,10 +94,14 @@ public class ClientHandler implements Runnable {
 				
 				case "connect":
 					
+					synchronized(Server.class)
+					{
 					message.setUsername(message.getUsername().replaceAll("\\s+",""));
 					
-					if(message.getUsername()==""){
+					if(message.getUsername() == ""){
+						log.info(message.getUsername());
 						message.setUsername("_");
+						log.info(message.getUsername());
 					}
 					
 					
@@ -91,6 +119,13 @@ public class ClientHandler implements Runnable {
 						}	
 						}
 					
+					try {
+						Thread.sleep(50);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
 					thisClient = new User(message.getUsername(), this.socket); //setup user object
 					
 					Server.users.add(thisClient); //add user Object to users list
@@ -103,12 +138,35 @@ public class ClientHandler implements Runnable {
 					message.setContents(timeStamp + ": <" + message.getUsername() + "> has connected.");
 					writeBuffer = mapper.writeValueAsString(message);
 					
+					
 					for (int i = 0; i < Server.users.size(); ++i) {
 						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
 						writer.write(writeBuffer);
 						writer.flush();
+
 					}
 
+					
+					try {
+						Thread.sleep(50);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
+					//send the MOTD to client when they connect
+					
+					
+					message.setContents(Server.serverConfig.getMOTD());
+					writeBuffer = mapper.writeValueAsString(message);
+					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+					writer.write(writeBuffer);
+					writer.flush();
+					
+					
+					
+					
+					
 					// debugging purposes only
 					log.info("Users found: ");
 
@@ -117,7 +175,7 @@ public class ClientHandler implements Runnable {
 					}
 
 					break;
-					
+					}
 					
 					
 					

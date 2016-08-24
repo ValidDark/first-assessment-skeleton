@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<admins>
+	<admin username="David">
+		<password>password12345</password>
+		<permission>0</permission>
+	</admin>
+	<admin username="admin">
+		<password>admin</password>
+		<permission>1</permission>
+	</admin>
+</admins>
