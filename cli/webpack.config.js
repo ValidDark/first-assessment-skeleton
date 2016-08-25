@@ -1,6 +1,11 @@
 module.exports = {
   target: 'node',
 
+  node: {
+    __dirname: false,
+    __filename: false,
+  },
+
   entry: {
     app: ['babel-polyfill', './src/app.js']
   },

@@ -68,6 +68,14 @@ public class ClientHandler implements Runnable {
 		sleepy(); // makes thread sleep for a bit, !important!
 	}
 	
+	public void SendTo(Message message, Socket thisSocket) throws IOException
+	{
+		PrintWriter writer = new PrintWriter(new OutputStreamWriter(thisSocket.getOutputStream()));
+		writer.write(mapper.writeValueAsString(message));
+		writer.flush();
+		sleepy(); // makes thread sleep for a bit, !important!
+	}
+	
 	public void sleepy()
 	{
 		try {
@@ -127,66 +135,30 @@ public class ClientHandler implements Runnable {
 						log.info(message.getUsername());
 					}
 					
-					
-					
 					for (int i = 0; i < Server.users.size(); ++i) {
 						if (message.getUsername().equals(Server.users.get(i).getUsername())) {  
 							String id = String.format("%04d", new Random().nextInt(10000));							
 							message.setUsername(message.getUsername() + id);
-							
 							message.setContents(Server.users.get(i).getUsername() + " was taken.  Your name was set to: " + message.getUsername());
-							writeBuffer = mapper.writeValueAsString(message);
-							writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-							writer.write(writeBuffer);
-							writer.flush();
+							
+							SendToSelf(message);
 						}	
-						}
-					
-					sleepy(); // makes thread sleep for a bit, !important!
+					}
 					
 					thisClient = new User(message.getUsername(), this.socket); //setup user object
 					
 					Server.users.add(thisClient); //add user Object to users list
-					
-					
 					Server.name.put(thisClient,message.getUsername()); //set the servers version of their name
 					
 					log.info("user <{}> connected from: {}", message.getUsername(), socket.getRemoteSocketAddress().toString()); //log to server
 					
 					message.setContents(timeStamp + ": <" + message.getUsername() + "> has connected.");
-					writeBuffer = mapper.writeValueAsString(message);
-					
-					
-					for (int i = 0; i < Server.users.size(); ++i) {
-						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
-						writer.write(writeBuffer);
-						writer.flush();
-
-					}
-
-					
-					sleepy(); // makes thread sleep for a bit, !important!
+					SendToAll(message);
 					
 					//send the MOTD to client when they connect
-					
-					
 					message.setContents(Server.serverConfig.getMOTD());
-					writeBuffer = mapper.writeValueAsString(message);
-					writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-					writer.write(writeBuffer);
-					writer.flush();
+					SendToSelf(message);
 					
-					
-					
-					
-					
-					// debugging purposes only
-					log.info("Users found: ");
-
-					for (int i = 0; i < Server.users.size(); ++i) {
-						log.info(Server.users.get(i).getUsername());
-					}
-
 					break;
 					}
 					
@@ -198,19 +170,11 @@ public class ClientHandler implements Runnable {
 					log.info("user <{}> disconnected", Server.name.get(thisClient));
 
 					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> has disconnected.");
-
-					writeBuffer = mapper.writeValueAsString(message);
-
-					for (int i = 0; i < Server.users.size(); ++i) {
-						writer = new PrintWriter(new OutputStreamWriter(Server.users.get(i).getSocket().getOutputStream()));
-						writer.write(writeBuffer);
-						writer.flush();
-					}
+					SendToAll(message);
 					
 					this.socket.close();
 					Server.users.remove(thisClient);
 					Server.name.remove(thisClient);
-
 					break;
 					
 					
@@ -261,10 +225,8 @@ public class ClientHandler implements Runnable {
 				            	
 				            }
 					}
-						
-					
-						
-						if(nameFound == false)
+	
+						if(!nameFound)
 						{
 							message.setCommand("connect");
 							message.setContents("--Username does not exist--");
@@ -280,32 +242,86 @@ public class ClientHandler implements Runnable {
 						
 						try {
 							message.setCommand("connect");
-							message.setContents("----------SERVER SHUTTING DOWN IN----------");
+							message.setContents("----SERVER-SHUTTING-DOWN-IN----");
 							SendToAll(message);
-							message.setContents("----------5----------");
-							SendToAll(message);
-							Thread.sleep(1000);
-							message.setContents("----------4----------");
+							message.setContents("---------------5---------------");
 							SendToAll(message);
 							Thread.sleep(1000);
-							message.setContents("----------3----------");
+							message.setContents("---------------4---------------");
 							SendToAll(message);
 							Thread.sleep(1000);
-							message.setContents("----------2----------");
+							message.setContents("---------------3---------------");
 							SendToAll(message);
 							Thread.sleep(1000);
-							message.setContents("----------1----------");
+							message.setContents("---------------2---------------");
 							SendToAll(message);
 							Thread.sleep(1000);
-							message.setContents("------Good-Bye-------");
+							message.setContents("---------------1---------------");
 							SendToAll(message);
-							Server.running = false;
+							Thread.sleep(1000);
+							message.setContents("-----------Good-Bye------------");
+							SendToAll(message);
+							message.setCommand("disconnect");
+							message.setContents("The server has shut down.");
+							SendToAll(message);
+							
+							for(int x = 0; x < Server.users.size(); ++x) //cleanly disconnect everyone so their client doesn't crash.
+							{
+				            	Server.users.get(x).getSocket().close();
+							}
+							
+							System.exit(0);
+							
+							
 						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						break;
 					
+					case "kick":  
+						message.setContents(message.getContents().substring(trim) + " ");
+						command = message.getContents().substring(0, message.getContents().indexOf(' '));
+						trim = message.getContents().indexOf(' ') + 1;
+						
+						nameFound = false;
+						
+						log.info("name to kick: " + command);
+						
+						
+						for (Entry<User, String> entry : Server.name.entrySet()) {
+				        	usersOnline += entry.getValue() + "\n";
+				        	
+				            if (entry.getValue().equals(command)) {
+				            	
+				            	nameFound = true;
+								
+				            	message.setCommand("disconnect");
+				            	message.setContents("You have been kicked.");
+				            	SendTo(message, entry.getKey().getSocket());
+				            	entry.getKey().getSocket().close();
+								Server.users.remove(entry.getKey());
+								Server.name.remove(entry.getKey());
+
+				            	message.setCommand("connected");
+				            	message.setContents(entry.getValue() + " has been kicked!");
+				            	SendToAll(message);
+				            }
+					}
+						
+					
+						
+						if(nameFound == false)
+						{
+							message.setCommand("connect");
+							message.setContents("--Username does not exist--");
+							SendToSelf(message);
+							
+							message.setContents(usersOnline);
+							SendToSelf(message);
+						}
+						break;	
+						
+						
 		            case "help":  
 						message.setCommand("connect");
 						message.setContents(helpMsg);
@@ -343,11 +359,10 @@ public class ClientHandler implements Runnable {
 											if(thisClient.getAdminLvl() > 0) //change the admins help message.
 											{
 												helpMsg = helpMsg +
-												"echo changeName <old> <new> (changes a users name from <old> to <new>\n";
+												"echo changeName <old> <new> (changes a users name from <old> to <new>)\n" +
+												"echo kick <name> (kicks user whose name matches <name>)\n" +
+												"echo shutdown  (shuts down the server in 5 seconds)\n";
 											}
-											
-											
-											
 											
 										}
 										
@@ -398,15 +413,9 @@ public class ClientHandler implements Runnable {
 						
 						if(command.equals("rollDice"))
 						{
-							
 							message.setContents(message.getContents().substring(trim) + " ");
 							command = message.getContents().substring(0, message.getContents().indexOf(' '));
 							trim = message.getContents().indexOf(' ') + 1;
-							
-							log.info("<"+command+">");
-							log.info(command);
-							log.info(command);
-							log.info(command);
 							
 							if (command.matches("[0-9]+") && command.length() >= 1)
 							{
@@ -415,7 +424,14 @@ public class ClientHandler implements Runnable {
 							message.setContents(Server.name.get(thisClient)+ " rolls a " + command + " sided dice and gets a : " + roll); 
 							SendToAll(message);
 							}
-							else
+							else if (command.length() == 0)
+							{
+								int roll = new Random().nextInt(6)+1;
+								message.setCommand("connect");
+								message.setContents(Server.name.get(thisClient)+ " rolls a 6 sided dice and gets a : " + roll); 
+								SendToAll(message);								
+							}
+								else
 							{
 								message.setCommand("connect");
 								message.setContents(command + "is not a number!");
@@ -427,7 +443,7 @@ public class ClientHandler implements Runnable {
 						
 						
 					else{
-					log.info("user <{}> tried to broadcast <{}>", Server.name.get(thisClient), message.getContents());
+					log.info("user <{}> broadcasted: {}", Server.name.get(thisClient), message.getContents());
 
 					message.setContents(timeStamp + " <" + Server.name.get(thisClient) + "> (all): " + message.getContents());
 					SendToAll(message);
@@ -547,12 +563,7 @@ public class ClientHandler implements Runnable {
 				
 				
 				socket.close();
-				
-				
-				
-				
-				
-				
+								
 				
 				
 				
@@ -564,5 +575,4 @@ public class ClientHandler implements Runnable {
 			log.error("Something went wrong with the JSON :/", e);
 		}
 	}
-
 }

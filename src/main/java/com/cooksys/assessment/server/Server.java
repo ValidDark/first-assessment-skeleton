@@ -19,7 +19,6 @@ import javax.xml.bind.Unmarshaller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.cooksys.assessment.Main;
 import com.cooksys.assessment.model.User;
 
 
@@ -53,8 +52,6 @@ public class Server implements Runnable {
 	static List<User> users = new ArrayList();
 	static Map<User, String> name = new HashMap();
 	
-	public static Boolean running = true;
-	
 	private Logger log = LoggerFactory.getLogger(Server.class);
 	
 	private int port = serverConfig.getPort();
@@ -79,15 +76,10 @@ public class Server implements Runnable {
 		ServerSocket ss;
 		try {
 			ss = new ServerSocket(this.port);
-			while (running) {
+			while (true) {
 				Socket socket = ss.accept();
 				ClientHandler handler = new ClientHandler(socket);
 				executor.execute(handler);
-			}
-			if(!running)
-			{
-				ss.close();
-				Main.executor.shutdown();
 			}
 		} catch (IOException e) {
 			log.error("Something went wrong :/", e);
