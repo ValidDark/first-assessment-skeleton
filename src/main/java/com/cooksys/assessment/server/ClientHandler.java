@@ -39,10 +39,10 @@ public class ClientHandler implements Runnable {
 	String helpMsg = "--Current Commands--\n" +
 			"echo help (shows help menu)\n" +
 			"echo login <name> <pass> (logs into admin with name <name> and password <pass>\n" +
-			"broadcast rollDice <#> (rolls a dice with <#> many sides)\n";
+			"broadcast rollDice <#> (rolls a dice with <#> many sides defaults to 6)\n";
 			
-	String usersOnline = "Users Online : \n";
 	
+	Boolean nameFound = false;
 	
 
 	public ClientHandler(Socket socket) {
@@ -79,11 +79,22 @@ public class ClientHandler implements Runnable {
 	public void sleepy()
 	{
 		try {
-			Thread.sleep(50);
+			Thread.sleep(85);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	public String usersOnline()
+	{
+		String usersOnline = "Users Online : \n";
+		
+		for (Entry<User, String> entry : Server.name.entrySet()) {
+        	usersOnline += entry.getValue() + "\n";
+		}
+		
+		return usersOnline;
 	}
 
 	User thisClient;
@@ -163,8 +174,6 @@ public class ClientHandler implements Runnable {
 					}
 					
 					
-					
-					
 				case "disconnect":
 					
 					log.info("user <{}> disconnected", Server.name.get(thisClient));
@@ -176,8 +185,6 @@ public class ClientHandler implements Runnable {
 					Server.users.remove(thisClient);
 					Server.name.remove(thisClient);
 					break;
-					
-					
 					
 					
 					//Going to piggyback most admin commands on echo.
@@ -194,18 +201,19 @@ public class ClientHandler implements Runnable {
 					
 					switch (command) {
 					
-					case "changeName":  
+					case "changeName": 
+						if(thisClient.getAdminLvl() > 0)
+						{
 						message.setContents(message.getContents().substring(trim) + " ");
 						command = message.getContents().substring(0, message.getContents().indexOf(' '));
 						trim = message.getContents().indexOf(' ') + 1;
 						
-						boolean nameFound = false;
+						nameFound = false;
 						
 						log.info("name to change: " + command);
 						
 						
 						for (Entry<User, String> entry : Server.name.entrySet()) {
-				        	usersOnline += entry.getValue() + "\n";
 				        	
 				            if (entry.getValue().equals(command)) {
 				            	
@@ -232,14 +240,21 @@ public class ClientHandler implements Runnable {
 							message.setContents("--Username does not exist--");
 							SendToSelf(message);
 							
-							message.setContents(usersOnline);
+							message.setContents(usersOnline());
 							SendToSelf(message);
 						}
-						
+						}
+						else
+						{
+							message.setCommand("connect");
+							message.setContents("--You do not have Permission to use that command--");
+							SendToSelf(message);
+						}
 						break;
 					
 					case "shutdown":  
-						
+						if(thisClient.getAdminLvl() > 0)
+						{
 						try {
 							message.setCommand("connect");
 							message.setContents("----SERVER-SHUTTING-DOWN-IN----");
@@ -276,9 +291,18 @@ public class ClientHandler implements Runnable {
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
+						}
+						else
+						{
+							message.setCommand("connect");
+							message.setContents("--You do not have Permission to use that command--");
+							SendToSelf(message);
+						}
 						break;
 					
 					case "kick":  
+						if(thisClient.getAdminLvl() > 0)
+						{
 						message.setContents(message.getContents().substring(trim) + " ");
 						command = message.getContents().substring(0, message.getContents().indexOf(' '));
 						trim = message.getContents().indexOf(' ') + 1;
@@ -289,7 +313,6 @@ public class ClientHandler implements Runnable {
 						
 						
 						for (Entry<User, String> entry : Server.name.entrySet()) {
-				        	usersOnline += entry.getValue() + "\n";
 				        	
 				            if (entry.getValue().equals(command)) {
 				            	
@@ -316,7 +339,14 @@ public class ClientHandler implements Runnable {
 							message.setContents("--Username does not exist--");
 							SendToSelf(message);
 							
-							message.setContents(usersOnline);
+							message.setContents(usersOnline());
+							SendToSelf(message);
+						}
+						}
+						else
+						{
+							message.setCommand("connect");
+							message.setContents("--You do not have Permission to use that command--");
 							SendToSelf(message);
 						}
 						break;	
@@ -363,9 +393,7 @@ public class ClientHandler implements Runnable {
 												"echo kick <name> (kicks user whose name matches <name>)\n" +
 												"echo shutdown  (shuts down the server in 5 seconds)\n";
 											}
-											
 										}
-										
 									}
 							
 						}
@@ -440,8 +468,6 @@ public class ClientHandler implements Runnable {
 						}
 						
 						
-						
-						
 					else{
 					log.info("user <{}> broadcasted: {}", Server.name.get(thisClient), message.getContents());
 
@@ -451,11 +477,6 @@ public class ClientHandler implements Runnable {
 					}
 					break;
 					}
-					
-					
-					
-					
-					
 					
 					
 					
@@ -470,7 +491,6 @@ public class ClientHandler implements Runnable {
 					
 
 						        for (Entry<User, String> entry : Server.name.entrySet()) {
-						        	usersOnline += entry.getValue() + "\n";
 						        	
 						            if (entry.getValue().equals(toUser)) {
 						            	
@@ -479,15 +499,12 @@ public class ClientHandler implements Runnable {
 						            	
 						                System.out.println(entry.getKey());
 						            }
-
-
 							}
 
 					if (!userFound) {
-						message.setContents("User <" + toUser + "> not found!\n" + usersOnline); 
+						message.setContents("User <" + toUser + "> not found!\n" + usersOnline()); 
 																																										
-						writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); 
-																									
+						writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); 																			
 					}
 
 					writeBuffer = mapper.writeValueAsString(message);
@@ -496,22 +513,14 @@ public class ClientHandler implements Runnable {
 
 					break;
 					
-					
-					
+
 					
 				case "users":
-					usersOnline = "Users Online : \n";
-					
-					
-					for (Entry<User, String> entry : Server.name.entrySet()) {
-			        	usersOnline += entry.getValue() + "\n";
-					}
-					
 
 
 					log.info("user <{}> got list of users", Server.name.get(thisClient));
 
-					message.setContents(usersOnline);
+					message.setContents(usersOnline());
 
 					writeBuffer = mapper.writeValueAsString(message);
 
@@ -557,15 +566,11 @@ public class ClientHandler implements Runnable {
 						Server.users.remove(i);
 					}
 					
-
 				}
 				
 				
-				
 				socket.close();
-								
-				
-				
+										
 				
 			} catch (IOException e1) {
 				log.error("couldn't close the socket");

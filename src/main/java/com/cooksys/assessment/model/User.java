@@ -7,15 +7,13 @@ public class User {
 	private String username;
 	private Socket socket;
 	private int adminLvl = 0; //what level admin they are, 0 for none,
-	
+
 	public User(String username, Socket socket) {
 		super();
 		this.username = username;
 		this.socket = socket;
 	}
 	
-
-
 	public int getAdminLvl() {
 		return adminLvl;
 	}
@@ -31,11 +29,6 @@ public class User {
 		result = prime * result + ((username == null) ? 0 : username.hashCode());
 		return result;
 	}
-
-
-
-
-
 
 
 	@Override
@@ -55,12 +48,6 @@ public class User {
 		return true;
 	}
 
-
-
-
-
-
-
 	public String getUsername() {
 		return username;
 	}
@@ -73,6 +60,5 @@ public class User {
 	public void setSocket(Socket socket) {
 		this.socket = socket;
 	}
-
 
 }
