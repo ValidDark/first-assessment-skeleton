@@ -205,6 +205,31 @@ cli
                       contents
                   }).toJSON() + '\n')
 
+          contents = '.\n'
+                  for(let x = 0; x < points.length; ++x)
+                  {
+                    if(question[q].answer === points[x].answer)
+                    {
+
+                      points[x].points += 1
+
+                      contents += points[x].name + '    current score: ' + points[x].points + '\n'
+
+                    }
+                    points[x].answer = ''
+                  }
+          if(contents === '.\n')
+            {
+              contents = "Nobody got it correct."
+            }
+          else {
+              contents += 'Got it correct!'
+          }
+          server.write(new Message({
+                      username,
+                      command,
+                      contents
+                  }).toJSON() + '\n')
         }
 
         let ntime =  Date.now()
@@ -244,8 +269,8 @@ cli
                 callback()
             })
 
-            setTimeout(intro(), 200)
-            setInterval(askQuestion(), 20050)
+            setTimeout(intro(), 500)
+            setInterval(askQuestion(), 25050)
 
 
             server.on('data', (buffer) => {
@@ -260,9 +285,16 @@ cli
                     this.log(cli.chalk.blue(Message.fromJSON(buffer).toString()))
                     let found = false
 
-                    if(message.contents.length === 1)
-                    {
-                    if(/[abcd]/i.test(message.contents))
+                    this.log(message.contents.length)
+
+                    this.log(message.contents)
+
+                    this.log("--------------")
+                    this.log(message.contents.substring(message.contents.length-1))
+                    this.log("--------------")
+
+
+                    if(/[abcd]/i.test(message.contents.substring(message.contents.length-1)))
                     {
                       this.log("IT WAS A B C OR D")
                       for(let x = 0; x < points.length; ++x)
@@ -271,11 +303,11 @@ cli
                         {
                           this.log("NAME IS IN ARRAY")
                           found = true;
-                          points[x].answer = contents.charAt(0)
+                          points[x].answer = message.contents.substring(message.contents.length-1)
                         }
                       }
                     }
-                  }
+
 
                     if(message.contents.includes('score'))
                     {
@@ -284,11 +316,12 @@ cli
                       {
                         if(message.username === points[x].name)
                         {
+                          found = true;
                           this.log("IT WAS " + message.username)
-                          if(points[x].score >= 0)
+                          if(points[x].points >= 0)
                           {
                             command = '@' + message.username
-                            contents = points[x].score
+                            contents = 'your score is : ' + points[x].points
                             server.write(new Message({
                                 username,
                                 command,
@@ -298,9 +331,9 @@ cli
                           }
                           else
                           {
-                          points[x].score = 0
+                          points[x].points = 0
                           command = '@' + message.username
-                          contents = points[x].score
+                          contents = points[x].points
                           server.write(new Message({
                               username,
                               command,
@@ -466,8 +499,8 @@ cli
                     callback()
                 })
 
-                setTimeout(intro(), 200)
-                setInterval(flood(), 250)
+                setTimeout(intro(), 500)
+                setInterval(flood(), 1250)
 
                 server.on('data', (buffer) => {
                   if(testJSON((buffer).toString()))

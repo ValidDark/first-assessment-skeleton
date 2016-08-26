@@ -7,11 +7,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
-import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Random;
 
@@ -20,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import com.cooksys.assessment.model.Message;
 import com.cooksys.assessment.model.User;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ClientHandler implements Runnable {

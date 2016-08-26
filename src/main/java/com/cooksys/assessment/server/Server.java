@@ -65,14 +65,6 @@ public class Server implements Runnable {
 	public void run() {
 		log.info("server started");
 		
-		
-		for(int i = 0; i < Server.adminList.size(); ++i)
-		{
-			log.info(Server.adminList.get(i).getUsername());
-			log.info(Server.adminList.get(i).getPassword());
-		}
-		
-		
 		ServerSocket ss;
 		try {
 			ss = new ServerSocket(this.port);
