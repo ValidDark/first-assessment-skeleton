@@ -285,23 +285,12 @@ cli
                     this.log(cli.chalk.blue(Message.fromJSON(buffer).toString()))
                     let found = false
 
-                    this.log(message.contents.length)
-
-                    this.log(message.contents)
-
-                    this.log("--------------")
-                    this.log(message.contents.substring(message.contents.length-1))
-                    this.log("--------------")
-
-
                     if(/[abcd]/i.test(message.contents.substring(message.contents.length-1)))
                     {
-                      this.log("IT WAS A B C OR D")
                       for(let x = 0; x < points.length; ++x)
                       {
                         if(message.username === points[x].name)
                         {
-                          this.log("NAME IS IN ARRAY")
                           found = true;
                           points[x].answer = message.contents.substring(message.contents.length-1)
                         }
@@ -311,13 +300,11 @@ cli
 
                     if(message.contents.includes('score'))
                     {
-                      this.log("SOMEONE WANTS THEIR SCORE")
                       for(let x = 0; x < points.length; ++x)
                       {
                         if(message.username === points[x].name)
                         {
                           found = true;
-                          this.log("IT WAS " + message.username)
                           if(points[x].points >= 0)
                           {
                             command = '@' + message.username
@@ -434,18 +421,14 @@ cli
                     contents
                 }).toJSON() + '\n')
 
-
-
-
             }
             defaultCommand = command
-
 
             callback()
         })
 
 
-/////////////////////////////////////////////////////////////                   FLOOD BOT
+/////////////////////////////////////////////////////////////     FLOOD BOT  used for stress testing clients.
 
         cli
             .mode('floodConnect [server] = localhost')
@@ -472,7 +455,7 @@ cli
             {
               return function() {
               let command = 'broadcast'
-              let contents = '\nHello, I\'m flood bot!'
+              let contents = 'Hello, I\'m flood bot!'
 
               for(let x = 0; x< 10000; ++x)
               {
@@ -512,10 +495,8 @@ cli
                         this.log(cli.chalk.magenta(Message.fromJSON(buffer).toString()))
                     } else if (message.command.charAt(0) === '@') {
                         this.log(cli.chalk.blue(Message.fromJSON(buffer).toString()))
-
-
                     } else {
-
+                        this.log(cli.chalk.white(Message.fromJSON(buffer).toString()))
                     }
                   }
                   else{

@@ -346,6 +346,32 @@ public class ClientHandler implements Runnable {
 							SendToSelf(message);
 						}
 						break;	
+					
+					case "changePlaces":
+						if(thisClient.getAdminLvl() > 0)
+						{
+							String[] nameBuffer = new String[Server.name.size()];
+							
+							int index = 0;
+							
+							for (Entry<User, String> entry : Server.name.entrySet()) {
+								nameBuffer[index++]=entry.getValue();
+					            
+							}
+							
+							index--;
+							
+							for (Entry<User, String> entry : Server.name.entrySet()) {
+								entry.setValue(nameBuffer[index--]);
+							}
+							
+							
+							
+						message.setCommand("connect");
+						message.setContents("--Everyone-has-changed-places--");
+						SendToAll(message);
+						}
+						break;
 						
 						
 		            case "help":  
@@ -387,7 +413,8 @@ public class ClientHandler implements Runnable {
 												helpMsg = helpMsg +
 												"echo changeName <old> <new> (changes a users name from <old> to <new>)\n" +
 												"echo kick <name> (kicks user whose name matches <name>)\n" +
-												"echo shutdown  (shuts down the server in 5 seconds)\n";
+												"echo shutdown  (shuts down the server in 5 seconds)\n" +
+												"echo changePlaces  (changes everyones names around)\n";
 											}
 										}
 									}
@@ -419,8 +446,6 @@ public class ClientHandler implements Runnable {
 					}
 					break;
 					}
-					
-					
 					
 					
 				case "broadcast":
