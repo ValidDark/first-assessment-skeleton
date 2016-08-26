@@ -154,7 +154,7 @@ cli
         {
           return function() {
           command = 'broadcast'
-          contents = '\nHello, I\'m trivia bot!  every 45 seconds I\'ll ask a multiple choice question!\nYou\'ll have 30 seconds to Direct Message me your answer!\nI\'ll only except the last answer from each person.\nYou can Direct Message me the word \'score\' to get everyones current points!'
+          contents = '\nHello, I\'m trivia bot!  every 25 seconds I\'ll ask a multiple choice question!\nYou\'ll have 30 seconds to Direct Message me your answer!\nI\'ll only except the last answer from each person.\nYou can Direct Message me the word \'score\' to get everyones current points!'
           server.write(new Message({
                       username,
                       command,
@@ -163,31 +163,6 @@ cli
           }
         }
 
-        function timeOver()
-        {
-          command = 'broadcast'
-          contents = 'TIME IS UP!!! answer was: ' + question[q].answer
-          server.write(new Message({
-                      username,
-                      command,
-                      contents
-                  }).toJSON() + '\n')
-        }
-
-
-        function countDown(x)
-        {
-          return function() {
-          command = 'broadcast'
-          contents = x + ' seconds left.'
-          server.write(new Message({
-                      username,
-                      command,
-                      contents
-                  }).toJSON() + '\n')
-          x -= 5
-          }
-        }
 
         function askQuestion() {
           return function(){
@@ -205,7 +180,7 @@ cli
                       contents
                   }).toJSON() + '\n')
 
-          contents = '.\n'
+          contents = '.\n.................................\n'
                   for(let x = 0; x < points.length; ++x)
                   {
                     if(question[q].answer === points[x].answer)
@@ -218,13 +193,14 @@ cli
                     }
                     points[x].answer = ''
                   }
-          if(contents === '.\n')
+          if(contents === '.\n.................................\n')
             {
-              contents = "Nobody got it correct."
+              contents += "Nobody got it correct."
             }
           else {
               contents += 'Got it correct!'
           }
+              contents += '\n.................................\n'
           server.write(new Message({
                       username,
                       command,
@@ -483,7 +459,7 @@ cli
                 })
 
                 setTimeout(intro(), 500)
-                setInterval(flood(), 1250)
+                setInterval(flood(), 850)
 
                 server.on('data', (buffer) => {
                   if(testJSON((buffer).toString()))
@@ -509,9 +485,3 @@ cli
                     this.log("-----------------------------BOT HAS BEEN DISCONNECTED------------------------------")
                 })
             })
-            // .action(function(input, callback) {
-            //
-            //
-            //
-            //     callback()
-            // })
